@@ -61,12 +61,15 @@ const char *const firmware_path = "/tmp/firmware.bin";
 const char *const sysupgrade_path = "/sbin/sysupgrade";
 
 
-static struct globals {
-	struct settings settings;
-	struct manifest manifest;
-	int firmware_fd;
+struct recv_manifest_ctx {
+	struct settings *s;
+	struct manifest m;
+};
+
+struct recv_image_ctx {
+	int fd;
 	ecdsa_sha256_context_t hash_ctx;
-} G = {};
+};
 
 
 static void usage(void) {
@@ -143,7 +146,7 @@ static float get_uptime(void) {
 }
 
 
-static float get_probability(time_t date, float priority) {
+static float get_probability(time_t date, float priority, bool fallback) {
 	float seconds = priority * 86400;
 	time_t diff = time(NULL) - date;
 
@@ -170,7 +173,7 @@ static float get_probability(time_t date, float priority) {
 			*/
 			return powf(0.75f, priority);
 	}
-	else if (G.settings.fallback) {
+	else if (fallback) {
 		if (diff >= seconds + 86400)
 			return 1;
 		else
@@ -194,6 +197,7 @@ static float get_probability(time_t date, float priority) {
 
 /** Receives data from uclient, chops it to lines and hands it to \ref parse_line */
 static void recv_manifest_cb(struct uclient *cl) {
+	struct recv_manifest_ctx *ctx = uclient_get_custom(cl);
 	static char buf[MAX_LINE_LENGTH + 1];
 	static char *ptr = buf;
 	char *newline;
@@ -216,7 +220,7 @@ static void recv_manifest_cb(struct uclient *cl) {
 				break;
 			*newline = '\0';
 
-			parse_line(line, &G.manifest, G.settings.branch);
+			parse_line(line, &ctx->m, ctx->s->branch);
 			line = newline + 1;
 		}
 
@@ -232,6 +236,7 @@ static void recv_manifest_cb(struct uclient *cl) {
 
 /** Receives data from uclient and writes it to file */
 static void recv_image_cb(struct uclient *cl) {
+	struct recv_image_ctx *ctx = uclient_get_custom(cl);
 	char buf[1024];
 	int len;
 
@@ -240,41 +245,40 @@ static void recv_image_cb(struct uclient *cl) {
 		if (!len)
 			return;
 
-		if (write(G.firmware_fd, buf, len) < len) {
+		if (write(ctx->fd, buf, len) < len) {
 			fputs("autoupdater: error: downloading firmware image failed: ", stderr);
 			perror(NULL);
 			return;
 		}
-		ecdsa_sha256_update(&G.hash_ctx, buf, len);
+		ecdsa_sha256_update(&ctx->hash_ctx, buf, len);
 	}
 }
 
 
-static bool autoupdate(const char *mirror) {
-	/**** Get and check manifest *****************************************/
-	/* Clean manifest data from earlier mirror */
-	free_manifest(&G.manifest);
-	memset(&G.manifest, 0, sizeof(G.manifest));
+static bool autoupdate(const char *mirror, struct settings *s) {
+	struct recv_manifest_ctx manifest_ctx = { .s = s };
+	struct manifest *m = &manifest_ctx.m;
 
+	/**** Get and check manifest *****************************************/
 	/* Construct manifest URL */
-	char manifest_url[strlen(mirror) + strlen(G.settings.branch) + 11];
-	sprintf(manifest_url, "%s/%s.manifest", mirror, G.settings.branch);
+	char manifest_url[strlen(mirror) + strlen(s->branch) + 11];
+	sprintf(manifest_url, "%s/%s.manifest", mirror, s->branch);
 
 	/* Download manifest */
-	ecdsa_sha256_init(&G.manifest.hash_ctx);
-	int err_code = get_url(manifest_url, recv_manifest_cb);
+	ecdsa_sha256_init(&m->hash_ctx);
+	int err_code = get_url(manifest_url, recv_manifest_cb, &manifest_ctx);
 	if (err_code != 0) {
 		fprintf(stderr, "autoupdater: warning: error downloading manifest: %s\n", uclient_get_errmsg(err_code));
 		return false;
 	}
 
 	/* Check manifest */
-	if (!G.manifest.branch_ok) {
-		fprintf(stderr, "autoupdater: warning: manifest %s is not for branch %s\n", manifest_url, G.settings.branch);
+	if (!m->branch_ok) {
+		fprintf(stderr, "autoupdater: warning: manifest %s is not for branch %s\n", manifest_url, s->branch);
 		return false;
 	}
 
-	if (!G.manifest.image_filename || !G.manifest.version) {
+	if (!m->image_filename || !m->version) {
 		fprintf(stderr, "autoupdater: warning: no matching firmware found (model %s)\n", platforminfo_get_image_name());
 		return false;
 	}
@@ -282,23 +286,23 @@ static bool autoupdate(const char *mirror) {
 	/* Check manifest signatures */
 	{
 		ecc_int256_t hash;
-		ecdsa_sha256_final(&G.manifest.hash_ctx, hash.p);
-		ecdsa_verify_context_t ctxs[G.manifest.n_signatures];
-		for (size_t i = 0; i < G.manifest.n_signatures; i++)
-			ecdsa_verify_prepare_legacy(&ctxs[i], &hash, G.manifest.signatures[i]);
+		ecdsa_sha256_final(&m->hash_ctx, hash.p);
+		ecdsa_verify_context_t ctxs[m->n_signatures];
+		for (size_t i = 0; i < m->n_signatures; i++)
+			ecdsa_verify_prepare_legacy(&ctxs[i], &hash, m->signatures[i]);
 
-		long unsigned int good_signatures = ecdsa_verify_list_legacy(ctxs, G.manifest.n_signatures, G.settings.pubkeys, G.settings.n_pubkeys);
-		if (good_signatures < G.settings.good_signatures) {
-			fprintf(stderr, "autoupdater: warning: manifest %s only carried %lu valid signatures, %lu are required\n", manifest_url, good_signatures, G.settings.good_signatures);
+		long unsigned int good_signatures = ecdsa_verify_list_legacy(ctxs, m->n_signatures, s->pubkeys, s->n_pubkeys);
+		if (good_signatures < s->good_signatures) {
+			fprintf(stderr, "autoupdater: warning: manifest %s only carried %lu valid signatures, %lu are required\n", manifest_url, good_signatures, s->good_signatures);
 			return false;
 		}
 	}
 
 	/* Check version and update probability */
-	if (!newer_than(G.manifest.version, G.settings.old_version))
+	if (!newer_than(m->version, s->old_version))
 		return true;
-	
-	if (!G.settings.force && random() >= RAND_MAX * get_probability(G.manifest.date, G.manifest.priority)) {
+
+	if (!s->force && random() >= RAND_MAX * get_probability(m->date, m->priority, s->fallback)) {
 		fputs("autoupdater: info: no autoupdate this time. Use -f to override.\n", stderr);
 		return true;
 	}
@@ -307,26 +311,27 @@ static bool autoupdate(const char *mirror) {
 	/* Begin download of the image */
 	run_dir(download_d_dir);
 
-	G.firmware_fd = open(firmware_path, O_WRONLY|O_CREAT, 0600);
-	if (G.firmware_fd < 0) {
+	struct recv_image_ctx image_ctx = { };
+	image_ctx.fd = open(firmware_path, O_WRONLY|O_CREAT, 0600);
+	if (image_ctx.fd < 0) {
 		fprintf(stderr, "autoupdater: error: failed opening firmware file %s\n", firmware_path);
 		goto fail_after_download;
 	}
 
 	/* Download image and calculate SHA256 checksum */
 	{
-		char image_url[strlen(mirror) + strlen(G.manifest.image_filename) + 2];
-		sprintf(image_url, "%s/%s", mirror, G.manifest.image_filename);
-		ecdsa_sha256_init(&G.hash_ctx);
-		get_url(image_url, &recv_image_cb);
+		char image_url[strlen(mirror) + strlen(m->image_filename) + 2];
+		sprintf(image_url, "%s/%s", mirror, m->image_filename);
+		ecdsa_sha256_init(&image_ctx.hash_ctx);
+		get_url(image_url, &recv_image_cb, &image_ctx);
 	}
-	close(G.firmware_fd);
+	close(image_ctx.fd);
 
 	/* Verify image checksum */
 	{
 		ecc_int256_t hash;
-		ecdsa_sha256_final(&G.hash_ctx, hash.p);
-		if (memcmp(hash.p, G.manifest.image_hash, ECDSA_SHA256_HASH_SIZE)) {
+		ecdsa_sha256_final(&image_ctx.hash_ctx, hash.p);
+		if (memcmp(hash.p, m->image_hash, ECDSA_SHA256_HASH_SIZE)) {
 			fputs("autoupdater: warning: invalid image checksum!\n", stderr);
 			goto fail_after_download;
 		}
@@ -372,14 +377,15 @@ static bool lock_autoupdater(void) {
 
 
 int main(int argc, char *argv[]) {
-	parse_args(argc, argv, &G.settings);
+	struct settings s = { };
+	parse_args(argc, argv, &s);
 
 	if (!platforminfo_get_image_name()) {
 		fputs("autoupdater: error: unsupported hardware model\n", stderr);
 		return EXIT_FAILURE;
 	}
 
-	load_settings(&G.settings);
+	load_settings(&s);
 	randomize();
 
 	if (!lock_autoupdater())
@@ -387,9 +393,9 @@ int main(int argc, char *argv[]) {
 
 	uloop_init();
 
-	size_t mirrors_left = G.settings.n_mirrors;
+	size_t mirrors_left = s.n_mirrors;
 	while (mirrors_left) {
-		const char **mirror = G.settings.mirrors;
+		const char **mirror = s.mirrors;
 		size_t i = random() % mirrors_left;
 
 		/* Move forward by i non-NULL entries */
@@ -404,7 +410,7 @@ int main(int argc, char *argv[]) {
 			i--;
 		}
 
-		if (autoupdate(*mirror))
+		if (autoupdate(*mirror, &s))
 			return EXIT_SUCCESS;
 
 		/* When the update has failed, remove the mirror from the list */

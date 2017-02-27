@@ -37,12 +37,14 @@
 const char *const user_agent = "Gluon Autoupdater (using libuclient)";
 
 struct uclient_data {
+	/* data that can be passed in by caller and used in custom callbacks */
+	void *custom;
+	/* data used by uclient callbacks */
 	int retries;
 	int err_code;
 };
 
 #define uc_data(cl) ((struct uclient_data *)cl->priv)
-
 
 enum uclient_own_error_code {
 	UCLIENT_ERROR_REDIRECT_FAILED = 32,
@@ -121,8 +123,8 @@ static void eof_cb(struct uclient *cl) {
 }
 
 
-int get_url(const char *url, void (*read_cb)(struct uclient *cl)) {
-	struct uclient_data d = { };
+int get_url(const char *url, void (*read_cb)(struct uclient *cl), void *cb_data) {
+	struct uclient_data d = { .custom = cb_data };
 	struct uclient_cb cb = {
 		.header_done = header_done_cb,
 		.data_read = read_cb,
