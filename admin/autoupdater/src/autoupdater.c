@@ -262,7 +262,11 @@ static bool autoupdate(const char *mirror) {
 
 	/* Download manifest */
 	ecdsa_sha256_init(&G.manifest.hash_ctx);
-	get_url(manifest_url, recv_manifest_cb);
+	int err_code = get_url(manifest_url, recv_manifest_cb);
+	if (err_code != 0) {
+		fprintf(stderr, "autoupdater: warning: error downloading manifest: %s\n", uclient_get_errmsg(err_code));
+		return false;
+	}
 
 	/* Check manifest */
 	if (!G.manifest.branch_ok) {

@@ -28,4 +28,5 @@
 #include <libubox/uclient.h>
 
 
-void get_url(const char *url, void (*read_cb)(struct uclient *cl));
+int get_url(const char *url, void (*read_cb)(struct uclient *cl));
+const char *uclient_get_errmsg(int code);
