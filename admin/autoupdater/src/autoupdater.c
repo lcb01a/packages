@@ -100,12 +100,15 @@ static void parse_args(int argc, char *argv[], struct settings *settings) {
 		switch (c) {
 		case OPTION_BRANCH:
 			settings->branch = optarg;
+			break;
 
 		case OPTION_FORCE:
 			settings->force = true;
+			break;
 
 		case OPTION_FALLBACK:
 			settings->fallback = true;
+			break;
 
 		case OPTION_HELP:
 			usage();
@@ -299,8 +302,10 @@ static bool autoupdate(const char *mirror, struct settings *s) {
 	}
 
 	/* Check version and update probability */
-	if (!newer_than(m->version, s->old_version))
+	if (!newer_than(m->version, s->old_version)) {
+		puts("No new firmware available.");
 		return true;
+	}
 
 	if (!s->force && random() >= RAND_MAX * get_probability(m->date, m->priority, s->fallback)) {
 		fputs("autoupdater: info: no autoupdate this time. Use -f to override.\n", stderr);

@@ -145,7 +145,7 @@ void load_settings(struct settings *settings) {
 
 	struct uci_section *branch = uci_lookup_section(ctx, p, settings->branch);
 	if (!branch || strcmp(branch->type, "branch")) {
-		fputs("autoupdater: error: unable to load branch configuration\n", stderr);
+		fprintf(stderr, "autoupdater: error: unable to load branch configuration for branch '%s'\n", settings->branch);
 		exit(1);
 	}
 
