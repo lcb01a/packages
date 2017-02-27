@@ -25,6 +25,12 @@
 */
 
 
+#include "manifest.h"
+#include "settings.h"
+#include "uclient.h"
+#include "util.h"
+#include "version.h"
+
 #include <libplatforminfo.h>
 #include <libubox/uloop.h>
 #include <ecdsautil/ecdsa.h>
@@ -42,12 +48,6 @@
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/stat.h>
-
-#include "manifest.h"
-#include "settings.h"
-#include "uclient.h"
-#include "util.h"
-#include "version.h"
 
 
 #define MAX_LINE_LENGTH 512
@@ -157,7 +157,11 @@ static float get_probability(time_t date, float priority) {
 		fputs("autoupdater: warning: clock seems to be incorrect.\n", stderr);
 
 		if (get_uptime() < 600)
-			/* If the uptime is very low, it's possible we just didn't get the time over NTP yet, so we'll just wait until the next time the updater runs */
+			/*
+			 If the uptime is very low, it's possible we just didn't get the
+			 time over NTP yet, so we'll just wait until the next time the
+			 updater runs
+			*/
 			return 0;
 		else
 			/*
@@ -195,18 +199,18 @@ static void recv_manifest_cb(struct uclient *cl) {
 	char *newline;
 	int len;
 
-	while (1) {
+	while (true) {
 		if (ptr - buf == MAX_LINE_LENGTH) {
 			fputs("autoupdater: error: encountered manifest line exceeding limit of " STRINGIFY(MAX_LINE_LENGTH) " characters\n", stderr);
 			break;
 		}
 		len = uclient_read(cl, ptr, MAX_LINE_LENGTH - (ptr - buf));
-		if (!len)
+		if (len <= 0)
 			break;
 		ptr[len] = '\0';
 
 		char *line = buf;
-		while (1) {
+		while (true) {
 			newline = strchr(line, '\n');
 			if (newline == NULL)
 				break;
@@ -231,7 +235,7 @@ static void recv_image_cb(struct uclient *cl) {
 	char buf[1024];
 	int len;
 
-	while (1) {
+	while (true) {
 		len = uclient_read(cl, buf, sizeof(buf));
 		if (!len)
 			return;

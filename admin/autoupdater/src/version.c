@@ -24,10 +24,10 @@
 */
 
 
+#include "version.h"
+
 #include <ctype.h>
 #include <string.h>
-
-#include "version.h"
 
 int char_order(char c) {
 	if (isdigit(c))

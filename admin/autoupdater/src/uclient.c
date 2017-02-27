@@ -24,11 +24,11 @@
 */
 
 
+#include "uclient.h"
+
 #include <libubox/uloop.h>
 
 #include <stdio.h>
-
-#include "uclient.h"
 
 
 #define TIMEOUT_MSEC 300000

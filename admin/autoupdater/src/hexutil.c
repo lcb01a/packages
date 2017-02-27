@@ -29,30 +29,30 @@
 #include <string.h>
 
 int parsehex(void *buffer, const char *string, size_t len) {
-  // number of digits must be even
-  if ((strlen(string) & 1) == 1)
-    return 0;
+	// number of digits must be even
+	if ((strlen(string) & 1) == 1)
+		return 0;
 
-  // number of digits must be 2 * len
-  if (strlen(string) != 2 * len)
-    return 0;
+	// number of digits must be 2 * len
+	if (strlen(string) != 2 * len)
+		return 0;
 
-  while (len--) {
-    int ret;
-    ret = sscanf(string, "%02hhx", (char*)(buffer++));
-    string += 2;
+	while (len--) {
+		int ret;
+		ret = sscanf(string, "%02hhx", (char*)(buffer++));
+		string += 2;
 
-    if (ret != 1)
-      break;
-  }
+		if (ret != 1)
+			break;
+	}
 
-  if (len != -1)
-    return 0;
+	if (len != -1)
+		return 0;
 
-  return 1;
+	return 1;
 }
 
-void hexdump(FILE *stream, unsigned char *buffer, size_t len) {
-  while (len--)
-    fprintf(stream, "%02hhx", *(buffer++));
+void hexdump(FILE *stream, void *buffer, size_t len) {
+	while (len--)
+		fprintf(stream, "%02hhx", *((char*)buffer++));
 }

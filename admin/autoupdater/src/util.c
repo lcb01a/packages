@@ -24,6 +24,8 @@
 */
 
 
+#include "util.h"
+
 #include <dirent.h>
 #include <fcntl.h>
 #include <limits.h>

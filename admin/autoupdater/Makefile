@@ -2,7 +2,6 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=autoupdater
 PKG_VERSION:=2
-PKG_BUILD_DEPENDS:=libuclient libecdsautil libplatforminfo libuci
 
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 

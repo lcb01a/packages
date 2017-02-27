@@ -25,13 +25,13 @@
 */
 
 
+#include "settings.h"
+#include "hexutil.h"
+
 #include <uci.h>
 
 #include <stdlib.h>
 #include <string.h>
-
-#include "settings.h"
-#include "hexutil.h"
 
 
 static char * read_one_line(const char *filename) {
@@ -99,7 +99,6 @@ static const char ** load_string_list(struct uci_context *ctx, struct uci_sectio
 	*len = i;
 	const char **ret = malloc(i * sizeof(char *));
 
-	o = uci_lookup_option(ctx, s, option);
 	i = 0;
 	uci_foreach_element(&o->v.list, e)
 		ret[i++] = e->name;

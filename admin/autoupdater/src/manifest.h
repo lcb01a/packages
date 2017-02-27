@@ -29,6 +29,7 @@
 #include <ecdsautil/sha256.h>
 
 #include <stdbool.h>
+#include <time.h>
 
 
 struct manifest {

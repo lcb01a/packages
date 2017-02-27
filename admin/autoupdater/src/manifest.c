@@ -24,15 +24,14 @@
 */
 
 
+#include "hexutil.h"
+#include "manifest.h"
+
 #include <libplatforminfo.h>
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
-
-#include "hexutil.h"
-#include "manifest.h"
 
 
 void free_manifest(struct manifest *m) {
@@ -119,9 +118,9 @@ void parse_line(char *line, struct manifest *m, const char *branch) {
 
 void parse_manifest(const char *file, struct manifest *m, char *branch) {
 	char *line = NULL;
-	size_t len = NULL;
+	size_t len = 0;
 	ssize_t read;
-	FILE f = fopen(file, "r");
+	FILE *f = fopen(file, "r");
 	if (!f)
 		return;
 
