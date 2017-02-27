@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2016, Matthias Schiffer <mschiffer@universe-factory.net>
+  Copyright (c) 2017, Matthias Schiffer <mschiffer@universe-factory.net>
                       Jan-Philipp Litza <janphilipp@litza.de>
   All rights reserved.
 

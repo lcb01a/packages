@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2016, Jan-Philipp Litza <janphilipp@litza.de>
+  Copyright (c) 2017, Jan-Philipp Litza <janphilipp@litza.de>
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without
