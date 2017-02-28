@@ -75,7 +75,19 @@ struct recv_image_ctx {
 
 
 static void usage(void) {
-	fputs("Usage: autoupdater [-b|--branch <BRANCH>] [-f|--force] [--fallback] [<mirror>..]\n", stderr);
+	fputs("\n"
+		"Usage: autoupdater [options] [<mirror> ...]\n\n"
+		"Possible options are:\n"
+		"  -b, --branch BRANCH  Override the branch given in the configuration.\n\n"
+		"  -f, --force          Always upgrade to a new version, ignoring its priority\n"
+		"                       and whether the autoupdater even is enabled.\n\n"
+		"  -h, --help           Show this help.\n\n"
+		"  --fallback           Upgrade if and only if the upgrade timespan of the new\n"
+		"                       version has passed for at least 24 hours.\n\n"
+		"  <mirror> ...         Override the mirror URLs given in the configuration. If\n"
+		"                       specified, these are not shuffled.\n\n",
+		stderr
+	);
 }
 
 
