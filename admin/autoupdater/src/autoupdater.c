@@ -231,7 +231,7 @@ static void recv_manifest_cb(struct uclient *cl) {
 				break;
 			*newline = '\0';
 
-			parse_line(line, &ctx->m, ctx->s->branch);
+			parse_line(line, &ctx->m, ctx->s->branch, platforminfo_get_image_name());
 			line = newline + 1;
 		}
 

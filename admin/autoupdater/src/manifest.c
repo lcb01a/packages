@@ -27,8 +27,6 @@
 #include "hexutil.h"
 #include "manifest.h"
 
-#include <libplatforminfo.h>
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -49,7 +47,7 @@ void free_manifest(struct manifest *m) {
 }
 
 
-void parse_line(char *line, struct manifest *m, const char *branch) {
+void parse_line(char *line, struct manifest *m, const char *branch, const char *image_name) {
 	if (line == NULL)
 		return;
 
@@ -94,7 +92,7 @@ void parse_line(char *line, struct manifest *m, const char *branch) {
 			char *checksum = strtok(NULL, " ");
 			char *filename = strtok(NULL, " ");
 
-			if (model == NULL || strcmp(model, platforminfo_get_image_name()))
+			if (model == NULL || strcmp(model, image_name))
 				return;
 
 			if (version == NULL || filename == NULL)
@@ -116,7 +114,7 @@ void parse_line(char *line, struct manifest *m, const char *branch) {
 }
 
 
-void parse_manifest(const char *file, struct manifest *m, char *branch) {
+void parse_manifest(const char *file, struct manifest *m, const char *branch, const char *image_name) {
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t read;
@@ -125,7 +123,7 @@ void parse_manifest(const char *file, struct manifest *m, char *branch) {
 		return;
 
 	while ((read = getline(&line, &len, f)) != -1)
-		parse_line(line, m, branch);
+		parse_line(line, m, branch, image_name);
 
 	free(line);
 	fclose(f);

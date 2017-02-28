@@ -49,6 +49,6 @@ struct manifest {
 
 void free_manifest(struct manifest *m);
 
-void parse_line(char *line, struct manifest *m, const char *branch);
+void parse_line(char *line, struct manifest *m, const char *branch, const char *image_name);
 
-void parse_manifest(const char *file, struct manifest *m, char *branch);
+void parse_manifest(const char *file, struct manifest *m, const char *branch, const char *image_name);
