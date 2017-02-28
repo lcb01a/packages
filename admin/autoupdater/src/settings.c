@@ -150,7 +150,8 @@ void load_settings(struct settings *settings) {
 	}
 
 	settings->good_signatures = load_positive_number(ctx, branch, "good_signatures");
-	settings->mirrors = load_string_list(ctx, branch, "mirror", &settings->n_mirrors);
+	if (settings->n_mirrors == 0)
+		settings->mirrors = load_string_list(ctx, branch, "mirror", &settings->n_mirrors);
 
 	const char **pubkeys_str = load_string_list(ctx, branch, "pubkey", &settings->n_pubkeys);
 	settings->pubkeys = malloc(settings->n_pubkeys * sizeof(ecc_25519_work_t));

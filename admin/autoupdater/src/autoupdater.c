@@ -75,7 +75,7 @@ struct recv_image_ctx {
 
 
 static void usage(void) {
-	fputs("Usage: autoupdater [-b|--branch <BRANCH>] [-f|--force] [--fallback]\n", stderr);
+	fputs("Usage: autoupdater [-b|--branch <BRANCH>] [-f|--force] [--fallback] [<mirror>..]\n", stderr);
 }
 
 
@@ -119,6 +119,14 @@ static void parse_args(int argc, char *argv[], struct settings *settings) {
 		default:
 			usage();
 			exit(1);
+		}
+	}
+
+	if (optind < argc) {
+		settings->n_mirrors = argc - optind;
+		settings->mirrors = malloc(settings->n_mirrors * sizeof(char *));
+		for (int i = optind; i < argc; i++) {
+			settings->mirrors[i - optind] = argv[i];
 		}
 	}
 }
@@ -391,6 +399,7 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
+	bool external_mirrors = s.n_mirrors > 0;
 	load_settings(&s);
 	randomize();
 
@@ -402,7 +411,7 @@ int main(int argc, char *argv[]) {
 	size_t mirrors_left = s.n_mirrors;
 	while (mirrors_left) {
 		const char **mirror = s.mirrors;
-		size_t i = random() % mirrors_left;
+		size_t i = external_mirrors? 0 : random() % mirrors_left;
 
 		/* Move forward by i non-NULL entries */
 		while (true) {
