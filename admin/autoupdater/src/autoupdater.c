@@ -82,6 +82,8 @@ static void usage(void) {
 		"  -f, --force          Always upgrade to a new version, ignoring its priority\n"
 		"                       and whether the autoupdater even is enabled.\n\n"
 		"  -h, --help           Show this help.\n\n"
+		"  -n, --no-upgrade,    Download and validate the manifest as usual, but do not\n"
+		"      --simulate       really flash a new firmware if one is available.\n\n"
 		"  --fallback           Upgrade if and only if the upgrade timespan of the new\n"
 		"                       version has passed for at least 24 hours.\n\n"
 		"  <mirror> ...         Override the mirror URLs given in the configuration. If\n"
@@ -96,18 +98,21 @@ static void parse_args(int argc, char *argv[], struct settings *settings) {
 		OPTION_BRANCH = 'b',
 		OPTION_FORCE = 'f',
 		OPTION_HELP = 'h',
+		OPTION_SIMULATE = 'n',
 		OPTION_FALLBACK = 256,
 	};
 
 	const struct option options[] = {
-		{"branch",   required_argument, NULL, OPTION_BRANCH},
-		{"force",    no_argument,	NULL, OPTION_FORCE},
-		{"fallback", no_argument,	NULL, OPTION_FALLBACK},
-		{"help",     no_argument,	NULL, OPTION_HELP},
+		{"branch",     required_argument, NULL, OPTION_BRANCH},
+		{"force",      no_argument,       NULL, OPTION_FORCE},
+		{"fallback",   no_argument,       NULL, OPTION_FALLBACK},
+		{"no-upgrade", no_argument,       NULL, OPTION_SIMULATE},
+		{"simulate",   no_argument,       NULL, OPTION_SIMULATE},
+		{"help",       no_argument,       NULL, OPTION_HELP},
 	};
 
 	while (true) {
-		int c = getopt_long(argc, argv, "b:fh", options, NULL);
+		int c = getopt_long(argc, argv, "b:fhn", options, NULL);
 		if (c < 0)
 			break;
 
@@ -127,6 +132,10 @@ static void parse_args(int argc, char *argv[], struct settings *settings) {
 		case OPTION_HELP:
 			usage();
 			exit(0);
+
+		case OPTION_SIMULATE:
+			settings->simulate = true;
+			break;
 
 		default:
 			usage();
@@ -369,6 +378,16 @@ static bool autoupdate(const char *mirror, struct settings *s) {
 	}
 
 	/**** Call sysupgrade ************************************************/
+	if (s->simulate) {
+		printf(
+			"autoupdater: info: Aborting successful upgrade because simulation was requested.\n"
+			"autoupdater: info: You can find the firmware file in %s\n",
+			firmware_path
+		);
+		run_dir(abort_d_dir);
+		return true;
+	}
+
 	/* Begin upgrade */
 	run_dir(upgrade_d_dir);
 
