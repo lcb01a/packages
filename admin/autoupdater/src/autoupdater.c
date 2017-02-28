@@ -64,6 +64,8 @@ const char *const sysupgrade_path = "/sbin/sysupgrade";
 struct recv_manifest_ctx {
 	struct settings *s;
 	struct manifest m;
+	char buf[MAX_LINE_LENGTH + 1];
+	char *ptr;
 };
 
 struct recv_image_ctx {
@@ -201,22 +203,20 @@ static float get_probability(time_t date, float priority, bool fallback) {
 /** Receives data from uclient, chops it to lines and hands it to \ref parse_line */
 static void recv_manifest_cb(struct uclient *cl) {
 	struct recv_manifest_ctx *ctx = uclient_get_custom(cl);
-	static char buf[MAX_LINE_LENGTH + 1];
-	static char *ptr = buf;
 	char *newline;
 	int len;
 
 	while (true) {
-		if (ptr - buf == MAX_LINE_LENGTH) {
+		if (ctx->ptr - ctx->buf == MAX_LINE_LENGTH) {
 			fputs("autoupdater: error: encountered manifest line exceeding limit of " STRINGIFY(MAX_LINE_LENGTH) " characters\n", stderr);
 			break;
 		}
-		len = uclient_read(cl, ptr, MAX_LINE_LENGTH - (ptr - buf));
+		len = uclient_read(cl, ctx->ptr, MAX_LINE_LENGTH - (ctx->ptr - ctx->buf));
 		if (len <= 0)
 			break;
-		ptr[len] = '\0';
+		ctx->ptr[len] = '\0';
 
-		char *line = buf;
+		char *line = ctx->buf;
 		while (true) {
 			newline = strchr(line, '\n');
 			if (newline == NULL)
@@ -231,8 +231,8 @@ static void recv_manifest_cb(struct uclient *cl) {
 		// buffer. We cannot use strcpy here because the memory areas
 		// might overlap!
 		int n = strlen(line);
-		memmove(buf, line, n);
-		ptr = buf + n;
+		memmove(ctx->buf, line, n);
+		ctx->ptr = ctx->buf + n;
 	}
 }
 
@@ -260,6 +260,7 @@ static void recv_image_cb(struct uclient *cl) {
 
 static bool autoupdate(const char *mirror, struct settings *s) {
 	struct recv_manifest_ctx manifest_ctx = { .s = s };
+	manifest_ctx.ptr = manifest_ctx.buf;
 	struct manifest *m = &manifest_ctx.m;
 
 	/**** Get and check manifest *****************************************/
