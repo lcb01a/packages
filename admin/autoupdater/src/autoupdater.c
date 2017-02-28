@@ -337,7 +337,12 @@ static bool autoupdate(const char *mirror, struct settings *s) {
 		char image_url[strlen(mirror) + strlen(m->image_filename) + 2];
 		sprintf(image_url, "%s/%s", mirror, m->image_filename);
 		ecdsa_sha256_init(&image_ctx.hash_ctx);
-		get_url(image_url, &recv_image_cb, &image_ctx);
+		int err_code = get_url(image_url, &recv_image_cb, &image_ctx);
+		if (err_code != 0) {
+			fprintf(stderr, "autoupdater: warning: error downloading image: %s\n", uclient_get_errmsg(err_code));
+			close(image_ctx.fd);
+			goto fail_after_download;
+		}
 	}
 	close(image_ctx.fd);
 
