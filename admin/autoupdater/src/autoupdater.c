@@ -411,18 +411,19 @@ fail_after_download:
 }
 
 
-static bool lock_autoupdater(void) {
+static int lock_autoupdater(void) {
 	int fd = open(lockfile, O_CREAT|O_RDONLY, 0666);
 	if (fd < 0) {
 		fprintf(stderr, "autoupdater: error: unable to open lock file: %m\n");
-		return false;
+		return -1;
 	}
 
 	if (flock(fd, LOCK_EX|LOCK_NB)) {
 		fputs("autoupdater: error: another instance is currently running\n", stderr);
-		return false;
+		close(fd);
+		return -1;
 	}
-	return true;
+	return fd;
 }
 
 
@@ -439,7 +440,8 @@ int main(int argc, char *argv[]) {
 	load_settings(&s);
 	randomize();
 
-	if (!lock_autoupdater())
+	int lock_fd = lock_autoupdater();
+	if (lock_fd < 0)
 		return EXIT_FAILURE;
 
 	uloop_init();
@@ -461,8 +463,12 @@ int main(int argc, char *argv[]) {
 			i--;
 		}
 
-		if (autoupdate(*mirror, &s))
+		if (autoupdate(*mirror, &s)) {
+			// update the mtime of the lockfile to indicate a successful run
+			futimens(lock_fd, NULL);
+
 			return EXIT_SUCCESS;
+		}
 
 		/* When the update has failed, remove the mirror from the list */
 		*mirror = NULL;
