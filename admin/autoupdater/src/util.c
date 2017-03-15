@@ -26,57 +26,24 @@
 
 #include "util.h"
 
-#include <dirent.h>
 #include <fcntl.h>
-#include <limits.h>
+#include <glob.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <sys/types.h>
 #include <sys/wait.h>
 
 
 void run_dir(const char *dir) {
-	DIR *dp = opendir(dir);
-	if (dp == NULL) {
-		fprintf(stderr, "autoupdater: warning: couldn't open directory %s: ", dir);
-		perror(NULL);
-		return;
-	}
+	char pat[strlen(dir) + 3];
+	sprintf(pat, "%s/*", dir);
+	glob_t globbuf;
+	if (glob(pat, 0, NULL, &globbuf))
+		goto out;
 
-	int n_files = 0;
-	int max_n_files = 8;
-	char **filenames = malloc(max_n_files * sizeof(char*));
-	struct dirent *file;
-	while ((file = readdir(dp))) {
-		if (file->d_name[0] == '.')
-			continue;
-
-		if (file->d_type != DT_REG && file->d_type != DT_UNKNOWN)
-			continue;
-
-		char buf[PATH_MAX];
-		snprintf(buf, PATH_MAX, "%s/%s", dir, file->d_name);
-
-		if (access(buf, X_OK))
-			continue;
-
-		if (n_files >= max_n_files) {
-			max_n_files *= 2;
-			filenames = realloc(filenames, max_n_files * sizeof(char*));
-		}
-
-		filenames[n_files] = malloc(strlen(file->d_name) * sizeof(char));
-		strcpy(filenames[n_files], file->d_name);
-		n_files++;
-	}
-	closedir(dp);
-
-	qsort(filenames, n_files, sizeof(char*), (int (*)(const void *, const void *)) &strcmp);
-
-	for (size_t i = 0; i < n_files; i++) {
+	for (char **path = globbuf.gl_pathv; path != NULL; path++) {
 		pid_t pid = fork();
 		if (pid == 0) {
 			int null_fd = open("/dev/null", O_RDWR);
@@ -84,10 +51,8 @@ void run_dir(const char *dir) {
 			dup2(null_fd, 1);
 			dup2(null_fd, 2);
 			close(null_fd);
-			char buf[PATH_MAX];
-			snprintf(buf, PATH_MAX, "%s/%s", dir, filenames[i]);
-			execl(buf, buf, (char *)NULL);
-			fprintf(stderr, "autoupdater: warning: failed executing %s: ", buf);
+			execl(*path, *path, (char *)NULL);
+			fprintf(stderr, "autoupdater: warning: failed executing %s: ", *path);
 			perror(NULL);
 			exit(EXIT_FAILURE);
 		} else if (waitpid(pid, NULL, 0) != pid) {
@@ -95,4 +60,7 @@ void run_dir(const char *dir) {
 			perror(NULL);
 		}
 	}
+
+out:
+	globfree(&globbuf);
 }
