@@ -34,7 +34,7 @@
 
 #define TIMEOUT_MSEC 300000
 
-const char *const user_agent = "Gluon Autoupdater (using libuclient)";
+static const char *const user_agent = "Gluon Autoupdater (using libuclient)";
 
 struct uclient_data {
 	/* data that can be passed in by caller and used in custom callbacks */
@@ -44,7 +44,9 @@ struct uclient_data {
 	int err_code;
 };
 
-#define uc_data(cl) ((struct uclient_data *)cl->priv)
+inline struct uclient_data *uc_data(struct uclient *cl) {
+	return (struct uclient_data *)cl->priv;
+}
 
 enum uclient_own_error_code {
 	UCLIENT_ERROR_REDIRECT_FAILED = 32,
@@ -58,27 +60,22 @@ const char *uclient_get_errmsg(int code) {
 	static char http_code_errmsg[16];
 	if (code & UCLIENT_ERROR_STATUS_CODE) {
 		snprintf(http_code_errmsg, 16, "HTTP error %d",
-			code ^ UCLIENT_ERROR_STATUS_CODE);
+			code & (~UCLIENT_ERROR_STATUS_CODE));
 		return http_code_errmsg;
 	}
 	switch(code) {
 	case UCLIENT_ERROR_CONNECT:
 		return "Connection failed";
-		break;
 	case UCLIENT_ERROR_TIMEDOUT:
 		return "Connection timed out";
-		break;
 	case UCLIENT_ERROR_REDIRECT_FAILED:
 		return "Failed to redirect";
-		break;
 	case UCLIENT_ERROR_TOO_MANY_REDIRECTS:
 		return "Too many redirects";
-		break;
 	case UCLIENT_ERROR_CONNECTION_RESET_PREMATURELY:
 		return "Connection reset prematurely";
 	default:
 		return "Unknown error";
-		break;
 	}
 }
 

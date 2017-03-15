@@ -29,7 +29,7 @@
 #include <ctype.h>
 #include <string.h>
 
-int char_order(char c) {
+static int char_order(char c) {
 	if (isdigit(c))
 		return 0;
 	else if (isalpha(c))

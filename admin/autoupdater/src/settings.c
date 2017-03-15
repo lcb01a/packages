@@ -155,7 +155,7 @@ void load_settings(struct settings *settings) {
 
 	const char **pubkeys_str = load_string_list(ctx, branch, "pubkey", &settings->n_pubkeys);
 	settings->pubkeys = malloc(settings->n_pubkeys * sizeof(ecc_25519_work_t));
-	int ignored_keys = 0;
+	size_t ignored_keys = 0;
 	for (size_t i = 0; i < settings->n_pubkeys; i++) {
 		ecc_int256_t pubkey_packed;
 		if (!pubkeys_str[i])

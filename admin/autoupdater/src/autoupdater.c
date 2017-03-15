@@ -53,12 +53,12 @@
 #define MAX_LINE_LENGTH 512
 #define STRINGIFY(str) #str
 
-const char *const download_d_dir = "/usr/lib/autoupdater/download.d";
-const char *const abort_d_dir = "/usr/lib/autoupdater/abort.d";
-const char *const upgrade_d_dir = "/usr/lib/autoupdater/upgrade.d";
-const char *const lockfile = "/var/run/autoupdater.lock";
-const char *const firmware_path = "/tmp/firmware.bin";
-const char *const sysupgrade_path = "/sbin/sysupgrade";
+static const char *const download_d_dir = "/usr/lib/autoupdater/download.d";
+static const char *const abort_d_dir = "/usr/lib/autoupdater/abort.d";
+static const char *const upgrade_d_dir = "/usr/lib/autoupdater/upgrade.d";
+static const char *const lockfile = "/var/run/autoupdater.lock";
+static const char *const firmware_path = "/tmp/firmware.bin";
+static const char *const sysupgrade_path = "/sbin/sysupgrade";
 
 
 struct recv_manifest_ctx {

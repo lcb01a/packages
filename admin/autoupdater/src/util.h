@@ -25,5 +25,4 @@
 #pragma once
 
 
-char * read_one_line(const char *filename);
 void run_dir(const char *dir);
