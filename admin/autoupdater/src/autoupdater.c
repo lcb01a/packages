@@ -153,33 +153,6 @@ static void parse_args(int argc, char *argv[], struct settings *settings) {
 }
 
 
-static void randomize(void) {
-	struct timespec tv;
-	if (clock_gettime(CLOCK_MONOTONIC, &tv)) {
-		fprintf(stderr, "autoupdater: error: clock_gettime: %m\n");
-		exit(1);
-	}
-
-	srandom(tv.tv_nsec);
-}
-
-
-static float get_uptime(void) {
-	FILE *f = fopen("/proc/uptime", "r");
-	if (f) {
-		float uptime;
-		int match = fscanf(f, "%f", &uptime);
-		fclose(f);
-
-		if (match == 1)
-			return uptime;
-	}
-
-	fputs("autoupdater: error: unable to determine uptime\n", stderr);
-	exit(1);
-}
-
-
 static float get_probability(time_t date, float priority, bool fallback) {
 	float seconds = priority * 86400;
 	time_t diff = time(NULL) - date;

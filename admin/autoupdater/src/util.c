@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <sys/wait.h>
@@ -63,4 +64,32 @@ void run_dir(const char *dir) {
 
 out:
 	globfree(&globbuf);
+}
+
+
+void randomize(void) {
+	struct timespec tv;
+	if (clock_gettime(CLOCK_MONOTONIC, &tv)) {
+		fprintf(stderr, "autoupdater: error: clock_gettime:");
+		perror(NULL);
+		exit(1);
+	}
+
+	srandom(tv.tv_nsec);
+}
+
+
+float get_uptime(void) {
+	FILE *f = fopen("/proc/uptime", "r");
+	if (f) {
+		float uptime;
+		int match = fscanf(f, "%f", &uptime);
+		fclose(f);
+
+		if (match == 1)
+			return uptime;
+	}
+
+	fputs("autoupdater: error: unable to determine uptime\n", stderr);
+	exit(1);
 }

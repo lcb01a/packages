@@ -26,3 +26,5 @@
 
 
 void run_dir(const char *dir);
+void randomize(void);
+float get_uptime(void);
