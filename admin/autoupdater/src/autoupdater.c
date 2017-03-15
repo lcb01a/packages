@@ -287,7 +287,7 @@ static void recv_image_cb(struct uclient *cl) {
 }
 
 
-static bool autoupdate(const char *mirror, struct settings *s) {
+static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 	struct recv_manifest_ctx manifest_ctx = { .s = s };
 	manifest_ctx.ptr = manifest_ctx.buf;
 	struct manifest *m = &manifest_ctx.m;
@@ -399,6 +399,9 @@ static bool autoupdate(const char *mirror, struct settings *s) {
 		close(null_fd);
 	}
 
+	/* Unset FD_CLOEXEC so the lockfile stays locked during sysupgrade */
+	fcntl(lock_fd, F_SETFD, 0);
+
 	execl(sysupgrade_path, sysupgrade_path, firmware_path, NULL);
 
 	/* execl() shouldn't return */
@@ -412,7 +415,7 @@ fail_after_download:
 
 
 static int lock_autoupdater(void) {
-	int fd = open(lockfile, O_CREAT|O_RDONLY, 0666);
+	int fd = open(lockfile, O_CREAT|O_RDONLY|O_CLOEXEC, 0666);
 	if (fd < 0) {
 		fprintf(stderr, "autoupdater: error: unable to open lock file: %m\n");
 		return -1;
@@ -463,7 +466,7 @@ int main(int argc, char *argv[]) {
 			i--;
 		}
 
-		if (autoupdate(*mirror, &s)) {
+		if (autoupdate(*mirror, &s, lock_fd)) {
 			// update the mtime of the lockfile to indicate a successful run
 			futimens(lock_fd, NULL);
 

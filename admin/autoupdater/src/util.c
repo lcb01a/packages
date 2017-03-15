@@ -83,8 +83,7 @@ void run_dir(const char *dir) {
 			dup2(null_fd, 0);
 			dup2(null_fd, 1);
 			dup2(null_fd, 2);
-			for (int i = 3; i < 65536; i++)
-				close(i);
+			close(null_fd);
 			char buf[PATH_MAX];
 			snprintf(buf, PATH_MAX, "%s/%s", dir, filenames[i]);
 			execl(buf, buf, (char *)NULL);
