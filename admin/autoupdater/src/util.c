@@ -42,11 +42,14 @@ void run_dir(const char *dir) {
 	sprintf(pat, "%s/*", dir);
 	glob_t globbuf;
 	if (glob(pat, 0, NULL, &globbuf))
-		goto out;
+		return;
 
 	for (char **path = globbuf.gl_pathv; path != NULL; path++) {
 		pid_t pid = fork();
-		if (pid == 0) {
+		if (pid < 0) {
+			fputs("autoupdater: warning: failed to fork: ", stderr);
+			perror(NULL);
+		} if (pid == 0) {
 			int null_fd = open("/dev/null", O_RDWR);
 			dup2(null_fd, 0);
 			dup2(null_fd, 1);
@@ -62,7 +65,6 @@ void run_dir(const char *dir) {
 		}
 	}
 
-out:
 	globfree(&globbuf);
 }
 
