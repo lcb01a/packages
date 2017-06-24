@@ -350,6 +350,8 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 		}
 	}
 
+	free_manifest_data(m);
+
 	/**** Call sysupgrade ************************************************/
 	if (s->simulate) {
 		printf(

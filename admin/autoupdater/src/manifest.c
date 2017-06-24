@@ -32,7 +32,8 @@
 #include <string.h>
 
 
-void free_manifest(struct manifest *m) {
+// only frees the data inside the manifest struct, not the struct itself!
+void free_manifest_data(struct manifest *m) {
 	free(m->image_filename);
 	m->image_filename = NULL;
 
