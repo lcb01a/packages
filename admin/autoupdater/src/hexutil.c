@@ -29,10 +29,6 @@
 #include <string.h>
 
 int parsehex(void *buffer, const char *string, size_t len) {
-	// number of digits must be even
-	if ((strlen(string) & 1) == 1)
-		return 0;
-
 	// number of digits must be 2 * len
 	if (strlen(string) != 2 * len)
 		return 0;
@@ -50,9 +46,4 @@ int parsehex(void *buffer, const char *string, size_t len) {
 		return 0;
 
 	return 1;
-}
-
-void hexdump(FILE *stream, void *buffer, size_t len) {
-	while (len--)
-		fprintf(stream, "%02hhx", *((char*)buffer++));
 }

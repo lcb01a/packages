@@ -99,7 +99,6 @@ static void header_done_cb(struct uclient *cl) {
 			return;
 		}
 	}
-	uc_data(cl)->retries = 0;
 
 	switch (cl->status_code) {
 	case 200:

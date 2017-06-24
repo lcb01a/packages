@@ -32,7 +32,3 @@
  * must fit exactly into the buffer.
  */
 int parsehex(void *buffer, const char *string, size_t len);
-
-/* Converts a byte array to a hexadecimal string.
- */
-void hexdump(FILE *stream, void *buffer, size_t len);
