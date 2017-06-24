@@ -116,7 +116,7 @@ static void header_done_cb(struct uclient *cl) {
 
 
 static void eof_cb(struct uclient *cl) {
-	request_done(cl, cl->data_eof? 0 : UCLIENT_ERROR_CONNECTION_RESET_PREMATURELY);
+	request_done(cl, cl->data_eof ? 0 : UCLIENT_ERROR_CONNECTION_RESET_PREMATURELY);
 }
 
 

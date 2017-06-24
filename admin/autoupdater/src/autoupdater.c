@@ -425,7 +425,7 @@ int main(int argc, char *argv[]) {
 	size_t mirrors_left = s.n_mirrors;
 	while (mirrors_left) {
 		const char **mirror = s.mirrors;
-		size_t i = external_mirrors? 0 : random() % mirrors_left;
+		size_t i = external_mirrors ? 0 : random() % mirrors_left;
 
 		/* Move forward by i non-NULL entries */
 		while (true) {
