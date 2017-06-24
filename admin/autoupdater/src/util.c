@@ -60,12 +60,19 @@ void run_dir(const char *dir) {
 			dup2(null_fd, 2);
 			close(null_fd);
 			execl(path, path, (char *)NULL);
-			fprintf(stderr, "autoupdater: warning: failed executing %s: ", path);
-			perror(NULL);
 			exit(EXIT_FAILURE);
-		} else if (waitpid(pid, NULL, 0) != pid) {
-			fprintf(stderr, "autoupdater: warning: failed waiting for child %d: ", pid);
-			perror(NULL);
+		} else {
+			int wstatus;
+			if (waitpid(pid, &wstatus, 0) != pid) {
+				fprintf(stderr, "autoupdater: warning: failed waiting for child %d corresponding to %s: ", pid, path);
+				perror(NULL);
+			}
+			else if (!WIFEXITED(wstatus)) {
+				fprintf(stderr, "autoupdater: warning: execution of %s exited abnormally\n", path);
+			}
+			else if (WEXITSTATUS(wstatus)) {
+				fprintf(stderr, "autoupdater: warning: execution of %s exited with status code %d\n", path, WEXITSTATUS(wstatus));
+			}
 		}
 	}
 
