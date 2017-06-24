@@ -44,7 +44,11 @@ void run_dir(const char *dir) {
 	if (glob(pat, 0, NULL, &globbuf))
 		return;
 
-	for (char **path = globbuf.gl_pathv; path != NULL; path++) {
+	for (size_t i = 0; i < globbuf.gl_pathc; i++) {
+		char *path = globbuf.gl_pathv[i];
+		if (access(path, X_OK) < 0)
+			continue;
+
 		pid_t pid = fork();
 		if (pid < 0) {
 			fputs("autoupdater: warning: failed to fork: ", stderr);
@@ -55,8 +59,8 @@ void run_dir(const char *dir) {
 			dup2(null_fd, 1);
 			dup2(null_fd, 2);
 			close(null_fd);
-			execl(*path, *path, (char *)NULL);
-			fprintf(stderr, "autoupdater: warning: failed executing %s: ", *path);
+			execl(path, path, (char *)NULL);
+			fprintf(stderr, "autoupdater: warning: failed executing %s: ", path);
 			perror(NULL);
 			exit(EXIT_FAILURE);
 		} else if (waitpid(pid, NULL, 0) != pid) {
