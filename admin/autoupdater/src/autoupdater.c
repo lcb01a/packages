@@ -261,6 +261,7 @@ static void recv_image_cb(struct uclient *cl) {
 
 
 static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
+	bool ret = false;
 	struct recv_manifest_ctx manifest_ctx = { .s = s };
 	manifest_ctx.ptr = manifest_ctx.buf;
 	struct manifest *m = &manifest_ctx.m;
@@ -275,18 +276,18 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 	int err_code = get_url(manifest_url, recv_manifest_cb, &manifest_ctx);
 	if (err_code != 0) {
 		fprintf(stderr, "autoupdater: warning: error downloading manifest: %s\n", uclient_get_errmsg(err_code));
-		return false;
+		goto out;
 	}
 
 	/* Check manifest */
 	if (!m->branch_ok) {
 		fprintf(stderr, "autoupdater: warning: manifest %s is not for branch %s\n", manifest_url, s->branch);
-		return false;
+		goto out;
 	}
 
 	if (!m->image_filename || !m->version) {
 		fprintf(stderr, "autoupdater: warning: no matching firmware found (model %s)\n", platforminfo_get_image_name());
-		return false;
+		goto out;
 	}
 
 	/* Check manifest signatures */
@@ -300,19 +301,21 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 		long unsigned int good_signatures = ecdsa_verify_list_legacy(ctxs, m->n_signatures, s->pubkeys, s->n_pubkeys);
 		if (good_signatures < s->good_signatures) {
 			fprintf(stderr, "autoupdater: warning: manifest %s only carried %lu valid signatures, %lu are required\n", manifest_url, good_signatures, s->good_signatures);
-			return false;
+			goto out;
 		}
 	}
 
 	/* Check version and update probability */
 	if (!newer_than(m->version, s->old_version)) {
 		puts("No new firmware available.");
-		return true;
+		ret = true;
+		goto out;
 	}
 
 	if (!s->force && random() >= RAND_MAX * get_probability(m->date, m->priority, s->fallback)) {
 		fputs("autoupdater: info: no autoupdate this time. Use -f to override.\n", stderr);
-		return true;
+		ret = true;
+		goto out;
 	}
 
 	/**** Download and verify image file *********************************/
@@ -360,7 +363,8 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 			firmware_path
 		);
 		run_dir(abort_d_dir);
-		return true;
+		ret = true;
+		goto out;
 	}
 
 	/* Begin upgrade */
@@ -385,7 +389,10 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 fail_after_download:
 	unlink(firmware_path);
 	run_dir(abort_d_dir);
-	return false;
+
+out:
+	free_manifest_data(m);
+	return ret;
 }
 
 
