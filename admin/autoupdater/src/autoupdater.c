@@ -82,8 +82,8 @@ static void usage(void) {
 		"  -f, --force          Always upgrade to a new version, ignoring its priority\n"
 		"                       and whether the autoupdater even is enabled.\n\n"
 		"  -h, --help           Show this help.\n\n"
-		"  -n, --no-upgrade,    Download and validate the manifest as usual, but do not\n"
-		"      --simulate       really flash a new firmware if one is available.\n\n"
+		"  -n, --no-action      Download and validate the manifest as usual, but do not\n"
+		"                       really flash a new firmware if one is available.\n\n"
 		"  --fallback           Upgrade if and only if the upgrade timespan of the new\n"
 		"                       version has passed for at least 24 hours.\n\n"
 		"  <mirror> ...         Override the mirror URLs given in the configuration. If\n"
@@ -98,17 +98,16 @@ static void parse_args(int argc, char *argv[], struct settings *settings) {
 		OPTION_BRANCH = 'b',
 		OPTION_FORCE = 'f',
 		OPTION_HELP = 'h',
-		OPTION_SIMULATE = 'n',
+		OPTION_NO_ACTION = 'n',
 		OPTION_FALLBACK = 256,
 	};
 
 	const struct option options[] = {
-		{"branch",     required_argument, NULL, OPTION_BRANCH},
-		{"force",      no_argument,       NULL, OPTION_FORCE},
-		{"fallback",   no_argument,       NULL, OPTION_FALLBACK},
-		{"no-upgrade", no_argument,       NULL, OPTION_SIMULATE},
-		{"simulate",   no_argument,       NULL, OPTION_SIMULATE},
-		{"help",       no_argument,       NULL, OPTION_HELP},
+		{"branch",    required_argument, NULL, OPTION_BRANCH},
+		{"force",     no_argument,       NULL, OPTION_FORCE},
+		{"fallback",  no_argument,       NULL, OPTION_FALLBACK},
+		{"no-action", no_argument,       NULL, OPTION_NO_ACTION},
+		{"help",      no_argument,       NULL, OPTION_HELP},
 	};
 
 	while (true) {
@@ -133,8 +132,8 @@ static void parse_args(int argc, char *argv[], struct settings *settings) {
 			usage();
 			exit(0);
 
-		case OPTION_SIMULATE:
-			settings->simulate = true;
+		case OPTION_NO_ACTION:
+			settings->no_action = true;
 			break;
 
 		default:
@@ -356,7 +355,7 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 	free_manifest_data(m);
 
 	/**** Call sysupgrade ************************************************/
-	if (s->simulate) {
+	if (s->no_action) {
 		printf(
 			"autoupdater: info: Aborting successful upgrade because simulation was requested.\n"
 			"autoupdater: info: You can find the firmware file in %s\n",
